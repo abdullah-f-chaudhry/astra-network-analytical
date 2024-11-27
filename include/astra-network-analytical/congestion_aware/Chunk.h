@@ -79,6 +79,8 @@ class Chunk {
      */
     void invoke_callback() noexcept;
 
+    int data; // Data value carried by the chunk
+
   private:
     /// size of the chunk
     ChunkSize chunk_size;
