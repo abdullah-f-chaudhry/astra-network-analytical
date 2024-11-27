@@ -97,7 +97,14 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
-    std::cout << "[Reduce-Scatter] Chunk arrived at time: " << current_time << " ns" << std::endl;
+    auto* chunk = static_cast<Chunk*>(event_queue_ptr); // Assuming chunk pointer is accessible
+    assert(chunk != nullptr);
+
+    int source_id = chunk->route.front()->get_id(); // First device in the route is the source
+    int destination_id = chunk->route.back()->get_id(); // Last device in the route is the destination
+
+    std::cout << "[Reduce-Scatter] Chunk arrived at Node " << destination_id
+              << " from Node " << source_id << " at time: " << current_time << " ns" << std::endl;
 }
 
 // Callback for logging All-Gather chunk arrivals
@@ -106,25 +113,32 @@ void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
-    std::cout << "[All-Gather] Chunk arrived at time: " << current_time << " ns" << std::endl;
+    auto* chunk = static_cast<Chunk*>(event_queue_ptr); // Assuming chunk pointer is accessible
+    assert(chunk != nullptr);
+
+    int source_id = chunk->route.front()->get_id(); // First device in the route is the source
+    int destination_id = chunk->route.back()->get_id(); // Last device in the route is the destination
+
+    std::cout << "[All-Gather] Chunk arrived at Node " << destination_id
+              << " from Node " << source_id << " at time: " << current_time << " ns" << std::endl;
 }
 
 // Trigger All-Gather for a node
 void trigger_all_gather(int node_id, EventQueue* event_queue) {
     for (int dest = 0; dest < node_buffers.size(); dest++) {
         if (dest == node_id) continue;
-
+    
         auto route = topology->route(node_id, dest);
         auto* event_queue_ptr = static_cast<void*>(event_queue);
-
+    
         auto chunk = std::make_unique<Chunk>(
             chunk_size, route, all_gather_chunk_arrived_callback, event_queue_ptr);
-        chunk->data = node_buffers[node_id][0];
-
-        const auto current_time = event_queue->get_current_time();
-        std::cout << "Node " << node_id << " sending reduced result (" << chunk->data
-                  << ") to Node " << dest << " at time: " << current_time << " ns" << std::endl;
-
+        chunk->data = node_buffers[node_id][0]; // Assign reduced value to chunk
+    
+        std::cout << "[All-Gather] Sending reduced result from Node " << node_id
+                  << " to Node " << dest << " with value " << chunk->data
+                  << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
+    
         topology->send(std::move(chunk));
     }
 }
@@ -162,15 +176,18 @@ int main() {
     for (int i = 0; i < npus_count; i++) {
         for (int j = 0; j < npus_count; j++) {
             if (i == j) continue;
-
+    
             for (int chunk_id = 0; chunk_id < chunks_per_packet; chunk_id++) {
                 auto route = topology->route(i, j);
                 auto* event_queue_ptr = static_cast<void*>(event_queue.get());
-
+    
                 auto chunk = std::make_unique<Chunk>(chunk_size, route, chunk_arrived_callback, event_queue_ptr);
+    
+                std::cout << "[Reduce-Scatter] Sending chunk from Node " << i
+                          << " to Node " << j << " with size " << chunk_size << " bytes." << std::endl;
+    
                 topology->send(std::move(chunk));
-
-                process_reduction(j, event_queue.get()); // Pass raw pointer
+                process_reduction(j, event_queue.get());
             }
         }
     }
