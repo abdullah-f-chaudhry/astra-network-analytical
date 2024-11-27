@@ -96,48 +96,24 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
     auto* const event_queue = static_cast<EventQueue*>(event_queue_ptr);
     assert(event_queue != nullptr);
 
-    auto* chunk = static_cast<Chunk*>(event_queue_ptr);
-    assert(chunk != nullptr);
-
-    // Get the current device and next device IDs
-    auto current_device = chunk->current_device();
-    auto next_device = chunk->next_device();
-
     const auto current_time = event_queue->get_current_time();
 
-    // Log details with protection against nullptr
-    std::cout << "[Reduce-Scatter] Chunk arrived at Node " << current_device->get_id();
-    if (next_device) {
-        std::cout << " and will move to Node " << next_device->get_id();
-    } else {
-        std::cout << " and has no next destination (end of route).";
-    }
-    std::cout << " at time: " << current_time << " ns." << std::endl;
+    // Simplified log message without accessing device IDs
+    std::cout << "[Reduce-Scatter] Chunk arrived at time: " << current_time << " ns." << std::endl;
 }
+
 
 // Callback for logging All-Gather chunk arrivals
 void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
     auto* const event_queue = static_cast<EventQueue*>(event_queue_ptr);
     assert(event_queue != nullptr);
 
-    auto* chunk = static_cast<Chunk*>(event_queue_ptr);
-    assert(chunk != nullptr);
-
-    // Get the current device and next device IDs
-    auto current_device = chunk->current_device();
-    auto next_device = chunk->next_device();
-
     const auto current_time = event_queue->get_current_time();
 
-    // Log details with protection against nullptr
-    std::cout << "[All-Gather] Chunk arrived at Node " << current_device->get_id();
-    if (next_device) {
-        std::cout << " and will move to Node " << next_device->get_id();
-    } else {
-        std::cout << " and has no next destination (end of route).";
-    }
-    std::cout << " at time: " << current_time << " ns." << std::endl;
+    // Simplified log message without accessing device IDs
+    std::cout << "[All-Gather] Chunk arrived at time: " << current_time << " ns." << std::endl;
 }
+
 
 // Trigger All-Gather for a node
 void trigger_all_gather(int node_id, EventQueue* event_queue) {
