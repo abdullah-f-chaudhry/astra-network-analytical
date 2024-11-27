@@ -149,7 +149,7 @@ int main() {
     const auto event_queue = std::make_shared<EventQueue>();
     Topology::set_event_queue(event_queue);
 
-    const auto network_parser = NetworkParser("../input/Ring.yml");
+    const auto network_parser = NetworkParser("../input/FullyConnected.yml");
     topology = construct_topology(network_parser);
     const auto npus_count = topology->get_npus_count();
     const auto devices_count = topology->get_devices_count();
