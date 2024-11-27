@@ -38,6 +38,9 @@ Chunk::Chunk(const ChunkSize chunk_size, Route route, const Callback callback, c
     assert(chunk_size > 0);
     assert(!this->route.empty());
     assert(callback != nullptr);
+
+    // Initialize the chunk's data to represent its contribution
+    data = 1; // Each chunk starts with a value of 1 for reduction
 }
 
 std::shared_ptr<Device> Chunk::current_device() const noexcept {
