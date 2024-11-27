@@ -8,8 +8,6 @@ LICENSE file in the root directory of this source tree.
 #include "common/Type.h"
 #include "congestion_aware/Type.h"
 #include <memory>
-#include "congestion_aware/Device.h"
-#include <cassert>
 
 using namespace NetworkAnalytical;
 
@@ -82,18 +80,6 @@ class Chunk {
     void invoke_callback() noexcept;
 
     int data; // Data value carried by the chunk
-
-    // Getter for the source device ID (first in the route)
-    int get_source_id() const {
-        assert(!route.empty());
-        return route.front()->get_id();
-    }
-
-    // Getter for the destination device ID (last in the route)
-    int get_destination_id() const {
-        assert(!route.empty());
-        return route.back()->get_id();
-    }
 
   private:
     /// size of the chunk
