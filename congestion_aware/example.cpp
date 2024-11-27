@@ -101,18 +101,19 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
 
     // Get the current device and next device IDs
     auto current_device = chunk->current_device();
-    auto next_device = chunk->next_device(); // If next_device exists
+    auto next_device = chunk->next_device();
 
     const auto current_time = event_queue->get_current_time();
 
-    // Log details
+    // Log details with protection against nullptr
     std::cout << "[Reduce-Scatter] Chunk arrived at Node " << current_device->get_id();
     if (next_device) {
         std::cout << " and will move to Node " << next_device->get_id();
+    } else {
+        std::cout << " and has no next destination (end of route).";
     }
     std::cout << " at time: " << current_time << " ns." << std::endl;
 }
-
 
 // Callback for logging All-Gather chunk arrivals
 void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
@@ -124,18 +125,19 @@ void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
 
     // Get the current device and next device IDs
     auto current_device = chunk->current_device();
-    auto next_device = chunk->next_device(); // If next_device exists
+    auto next_device = chunk->next_device();
 
     const auto current_time = event_queue->get_current_time();
 
-    // Log details
+    // Log details with protection against nullptr
     std::cout << "[All-Gather] Chunk arrived at Node " << current_device->get_id();
     if (next_device) {
         std::cout << " and will move to Node " << next_device->get_id();
+    } else {
+        std::cout << " and has no next destination (end of route).";
     }
     std::cout << " at time: " << current_time << " ns." << std::endl;
 }
-
 
 // Trigger All-Gather for a node
 void trigger_all_gather(int node_id, EventQueue* event_queue) {
