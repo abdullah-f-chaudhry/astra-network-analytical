@@ -97,11 +97,11 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
-    auto* chunk = static_cast<Chunk*>(event_queue_ptr); // Assuming chunk pointer is accessible
+    auto* chunk = static_cast<Chunk*>(event_queue_ptr);
     assert(chunk != nullptr);
 
-    int source_id = chunk->route.front()->get_id(); // First device in the route is the source
-    int destination_id = chunk->route.back()->get_id(); // Last device in the route is the destination
+    int source_id = chunk->get_source_id();
+    int destination_id = chunk->get_destination_id();
 
     std::cout << "[Reduce-Scatter] Chunk arrived at Node " << destination_id
               << " from Node " << source_id << " at time: " << current_time << " ns" << std::endl;
@@ -113,11 +113,11 @@ void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
-    auto* chunk = static_cast<Chunk*>(event_queue_ptr); // Assuming chunk pointer is accessible
+    auto* chunk = static_cast<Chunk*>(event_queue_ptr);
     assert(chunk != nullptr);
 
-    int source_id = chunk->route.front()->get_id(); // First device in the route is the source
-    int destination_id = chunk->route.back()->get_id(); // Last device in the route is the destination
+    int source_id = chunk->get_source_id();
+    int destination_id = chunk->get_destination_id();
 
     std::cout << "[All-Gather] Chunk arrived at Node " << destination_id
               << " from Node " << source_id << " at time: " << current_time << " ns" << std::endl;
