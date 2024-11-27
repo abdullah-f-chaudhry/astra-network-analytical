@@ -96,32 +96,46 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
     auto* const event_queue = static_cast<EventQueue*>(event_queue_ptr);
     assert(event_queue != nullptr);
 
-    const auto current_time = event_queue->get_current_time();
     auto* chunk = static_cast<Chunk*>(event_queue_ptr);
     assert(chunk != nullptr);
 
-    int source_id = chunk->get_source_id();
-    int destination_id = chunk->get_destination_id();
+    // Get the current device and next device IDs
+    auto current_device = chunk->current_device();
+    auto next_device = chunk->next_device(); // If next_device exists
 
-    std::cout << "[Reduce-Scatter] Chunk arrived at Node " << destination_id
-              << " from Node " << source_id << " at time: " << current_time << " ns" << std::endl;
+    const auto current_time = event_queue->get_current_time();
+
+    // Log details
+    std::cout << "[Reduce-Scatter] Chunk arrived at Node " << current_device->get_id();
+    if (next_device) {
+        std::cout << " and will move to Node " << next_device->get_id();
+    }
+    std::cout << " at time: " << current_time << " ns." << std::endl;
 }
+
 
 // Callback for logging All-Gather chunk arrivals
 void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
     auto* const event_queue = static_cast<EventQueue*>(event_queue_ptr);
     assert(event_queue != nullptr);
 
-    const auto current_time = event_queue->get_current_time();
     auto* chunk = static_cast<Chunk*>(event_queue_ptr);
     assert(chunk != nullptr);
 
-    int source_id = chunk->get_source_id();
-    int destination_id = chunk->get_destination_id();
+    // Get the current device and next device IDs
+    auto current_device = chunk->current_device();
+    auto next_device = chunk->next_device(); // If next_device exists
 
-    std::cout << "[All-Gather] Chunk arrived at Node " << destination_id
-              << " from Node " << source_id << " at time: " << current_time << " ns" << std::endl;
+    const auto current_time = event_queue->get_current_time();
+
+    // Log details
+    std::cout << "[All-Gather] Chunk arrived at Node " << current_device->get_id();
+    if (next_device) {
+        std::cout << " and will move to Node " << next_device->get_id();
+    }
+    std::cout << " at time: " << current_time << " ns." << std::endl;
 }
+
 
 // Trigger All-Gather for a node
 void trigger_all_gather(int node_id, EventQueue* event_queue) {
