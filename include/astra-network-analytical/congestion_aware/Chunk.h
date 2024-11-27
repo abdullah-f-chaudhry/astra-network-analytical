@@ -8,6 +8,8 @@ LICENSE file in the root directory of this source tree.
 #include "common/Type.h"
 #include "congestion_aware/Type.h"
 #include <memory>
+#include "congestion_aware/Device.h"
+#include <cassert>
 
 using namespace NetworkAnalytical;
 
