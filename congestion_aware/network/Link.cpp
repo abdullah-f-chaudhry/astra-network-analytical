@@ -8,6 +8,7 @@ LICENSE file in the root directory of this source tree.
 #include "congestion_aware/Chunk.h"
 #include "congestion_aware/Device.h"
 #include <cassert>
+#include <iostream>
 
 using namespace NetworkAnalytical;
 using namespace NetworkAnalyticalCongestionAware;
