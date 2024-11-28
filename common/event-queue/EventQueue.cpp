@@ -73,21 +73,10 @@ void EventQueue::schedule_event(const EventTime event_time,
 
 #include "common/EventQueue.h"
 #include <cassert>
-#include <queue>
 
 using namespace NetworkAnalytical;
 
-// Priority queue for efficient event management
-struct EventComparator {
-    bool operator()(const EventList& a, const EventList& b) {
-        return a.get_event_time() > b.get_event_time();
-    }
-};
-
-EventQueue::EventQueue() noexcept : current_time(0) {
-    // Use priority queue for events
-    event_queue = std::priority_queue<EventList, std::vector<EventList>, EventComparator>();
-}
+EventQueue::EventQueue() noexcept : current_time(0) {}
 
 EventTime EventQueue::get_current_time() const noexcept {
     return current_time;
@@ -98,38 +87,30 @@ bool EventQueue::finished() const noexcept {
 }
 
 void EventQueue::proceed() noexcept {
+    // Ensure there are events to process
     assert(!finished());
 
-    auto& current_event_list = event_queue.top();
-    assert(current_event_list.get_event_time() >= current_time);
+    // Get the top event list
+    auto current_event_list = event_queue.top();
+    event_queue.pop();
 
-    current_time = current_event_list.get_event_time();
+    // Update the current time
+    assert(current_event_list->get_event_time() > current_time);
+    current_time = current_event_list->get_event_time();
 
-    // Process all events at the current time
-    while (!event_queue.empty() && event_queue.top().get_event_time() == current_time) {
-        event_queue.top().invoke_events();
-        event_queue.pop();
-    }
+    // Invoke the events
+    current_event_list->invoke_events();
 }
 
 void EventQueue::schedule_event(const EventTime event_time,
-                                const Callback callback,
-                                const CallbackArg callback_arg) noexcept {
+                                 const Callback callback,
+                                 const CallbackArg callback_arg) noexcept {
     assert(event_time >= current_time);
 
-    // Find or create an event list for the given time
-    bool found = false;
-    for (auto& event_list : event_queue) {
-        if (event_list.get_event_time() == event_time) {
-            event_list.add_event(callback, callback_arg);
-            found = true;
-            break;
-        }
-    }
+    // Create or reuse an EventList
+    auto event_list = std::make_shared<EventList>(event_time);
+    event_list->add_event(callback, callback_arg);
 
-    if (!found) {
-        EventList new_event_list(event_time);
-        new_event_list.add_event(callback, callback_arg);
-        event_queue.push(std::move(new_event_list));
-    }
+    // Push the new event list into the priority queue
+    event_queue.push(event_list);
 }
