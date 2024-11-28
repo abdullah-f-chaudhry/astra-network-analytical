@@ -136,11 +136,12 @@ void Link::schedule_chunk_transmission(std::unique_ptr<Chunk> chunk) noexcept {
     Link::event_queue->schedule_event(chunk_arrival_time, Chunk::chunk_arrived_next_device, chunk_ptr);
 
     // Debug: Log delay and event scheduling
+    /*
     std::cout << "[DEBUG] Scheduling chunk transmission:"
               << " Current Time: " << current_time
               << " Communication Delay: " << communication_time
               << " Chunk Arrival Time: " << chunk_arrival_time << std::endl;
-    
+    */
     // schedule link free time
     const auto serialization_time = serialization_delay(chunk_size);
     const auto link_free_time = current_time + serialization_time;
