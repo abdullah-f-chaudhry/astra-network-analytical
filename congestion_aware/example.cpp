@@ -276,15 +276,21 @@ void trigger_all_gather_for_chunk(int node_id, int chunk_id, EventQueue* event_q
 
 // Process reduction progress
 void process_reduction(int node_id, int chunk_id, EventQueue* event_queue) {
-    node_buffers[node_id][chunk_id] += 1;
+    // Ensure reduction progress only increments once per chunk
+    if (reduce_scatter_complete[node_id][chunk_id]) {
+        std::cout << "[DEBUG] Skipping redundant reduction for Node " << node_id
+                  << ", Chunk " << chunk_id << " at time: "
+                  << event_queue->get_current_time() << " ns." << std::endl;
+        return;
+    }
 
+    node_buffers[node_id][chunk_id] += 1;
     reduction_progress[node_id]++;
+    reduce_scatter_complete[node_id][chunk_id] = true;
+
     std::cout << "[Reduction] Node " << node_id << " reduced chunk " << chunk_id
               << ". Current progress: " << reduction_progress[node_id] << "/" << chunks_per_packet
               << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
-
-    // Mark Reduce-Scatter for the current chunk as complete
-    reduce_scatter_complete[node_id][chunk_id] = true;
 
     // Trigger All-Gather for the current chunk
     trigger_all_gather_for_chunk(node_id, chunk_id, event_queue);
@@ -295,6 +301,7 @@ void process_reduction(int node_id, int chunk_id, EventQueue* event_queue) {
                   << node_buffers[node_id][0] << " at time: " << current_time << " ns." << std::endl;
     }
 }
+
 
 int main() {
     const auto event_queue = std::make_shared<EventQueue>();
