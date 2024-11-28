@@ -149,5 +149,5 @@ void Link::schedule_chunk_transmission(std::unique_ptr<Chunk> chunk) noexcept {
     Link::event_queue->schedule_event(link_free_time, link_become_free, link_ptr);
 
     // Debug: Log link free time
-    std::cout << "[DEBUG] Scheduling link free at time: " << link_free_time << std::endl;
+    //std::cout << "[DEBUG] Scheduling link free at time: " << link_free_time << std::endl;
 }
