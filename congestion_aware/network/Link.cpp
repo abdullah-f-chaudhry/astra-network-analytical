@@ -50,9 +50,11 @@ Link::Link(const Bandwidth bandwidth, const Latency latency) noexcept
     bandwidth_Bpns = bw_GBps_to_Bpns(bandwidth);
 
     // Debug: Log initialization
+        /*
     std::cout << "[DEBUG] Link initialized with bandwidth: " << bandwidth
               << " GB/s (" << bandwidth_Bpns << " B/ns)"
               << ", latency: " << latency << " ns." << std::endl;
+        */
 }
 
 void Link::send(std::unique_ptr<Chunk> chunk) noexcept {
