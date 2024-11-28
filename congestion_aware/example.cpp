@@ -218,13 +218,13 @@ using namespace NetworkAnalyticalCongestionAware;
 // Global variables
 std::unordered_map<int, std::vector<int>> node_buffers;
 std::unordered_map<int, int> reduction_progress;
-std::shared_ptr<Topology> topology;
+std::shared_ptr<Topology> topology; // Make topology global
 
 const int chunks_per_packet = 4;
 const int chunk_size = 256 * 1024;
 
 // Forward declarations
-void trigger_all_gather(int node_id, EventQueue* event_queue, int chunk_id);
+void trigger_all_gather_for_chunk(int node_id, int chunk_id, EventQueue* event_queue);
 void process_reduction(int node_id, int chunk_id, EventQueue* event_queue);
 
 // Callback for logging Reduce-Scatter chunk arrivals
@@ -233,6 +233,8 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
+
+    // Simplified log message without accessing device IDs
     std::cout << "[Reduce-Scatter] Chunk arrived at time: " << current_time << " ns." << std::endl;
 }
 
@@ -242,11 +244,13 @@ void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
+
+    // Simplified log message without accessing device IDs
     std::cout << "[All-Gather] Chunk arrived at time: " << current_time << " ns." << std::endl;
 }
 
-// Trigger All-Gather for a node
-void trigger_all_gather(int node_id, EventQueue* event_queue, int chunk_id) {
+// Trigger All-Gather for a specific chunk
+void trigger_all_gather_for_chunk(int node_id, int chunk_id, EventQueue* event_queue) {
     for (int dest = 0; dest < node_buffers.size(); dest++) {
         if (dest == node_id) continue;
 
@@ -255,10 +259,12 @@ void trigger_all_gather(int node_id, EventQueue* event_queue, int chunk_id) {
 
         auto chunk = std::make_unique<Chunk>(
             chunk_size, route, all_gather_chunk_arrived_callback, event_queue_ptr);
-        chunk->data = node_buffers[node_id][0]; // Assign reduced value to chunk
+        chunk->data = node_buffers[node_id][chunk_id]; // Assign reduced chunk value to chunk
 
-        std::cout << "[All-Gather] Sending reduced result from Node " << node_id
-                  << " to Node " << dest << " for chunk " << chunk_id
+        std::cout << "[All-Gather] Sending chunk " << chunk_id
+                  << " from Node " << node_id
+                  << " to Node " << dest
+                  << " with value: " << chunk->data
                   << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
 
         topology->send(std::move(chunk));
@@ -267,20 +273,20 @@ void trigger_all_gather(int node_id, EventQueue* event_queue, int chunk_id) {
 
 // Process reduction progress
 void process_reduction(int node_id, int chunk_id, EventQueue* event_queue) {
-    node_buffers[node_id][chunk_id] += 1; // Increment reduction for the chunk
+    node_buffers[node_id][chunk_id] += 1;
 
     reduction_progress[node_id]++;
     std::cout << "[Reduction] Node " << node_id << " reduced chunk " << chunk_id
               << ". Current progress: " << reduction_progress[node_id] << "/" << chunks_per_packet
               << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
 
-    // Check if reduction is complete for the node
+    // Trigger All-Gather for the current chunk
+    trigger_all_gather_for_chunk(node_id, chunk_id, event_queue);
+
     if (reduction_progress[node_id] == chunks_per_packet) {
-        std::cout << "Node " << node_id << " completed reduction for all chunks at time: "
-                  << event_queue->get_current_time() << " ns." << std::endl;
-    } else {
-        // Pipeline: Initiate All-Gather for the chunk that just finished
-        trigger_all_gather(node_id, event_queue, chunk_id);
+        const auto current_time = event_queue->get_current_time();
+        std::cout << "Node " << node_id << " completed reduction. Fully reduced value: "
+                  << node_buffers[node_id][0] << " at time: " << current_time << " ns" << std::endl;
     }
 }
 
@@ -294,7 +300,7 @@ int main() {
     const auto devices_count = topology->get_devices_count();
 
     for (int i = 0; i < npus_count; i++) {
-        node_buffers[i] = std::vector<int>(chunks_per_packet, 0);
+        node_buffers[i] = std::vector<int>(chunks_per_packet, 0); // Initialize buffer for each chunk
         reduction_progress[i] = 0;
     }
 
@@ -306,11 +312,11 @@ int main() {
                 auto route = topology->route(i, j);
                 auto* event_queue_ptr = static_cast<void*>(event_queue.get());
 
-                auto chunk = std::make_unique<Chunk>(
-                    chunk_size, route, chunk_arrived_callback, event_queue_ptr);
+                auto chunk = std::make_unique<Chunk>(chunk_size, route, chunk_arrived_callback, event_queue_ptr);
 
-                std::cout << "[Reduce-Scatter] Sending chunk from Node " << i
-                          << " to Node " << j << " for chunk " << chunk_id
+                std::cout << "[Reduce-Scatter] Sending chunk " << chunk_id
+                          << " from Node " << i
+                          << " to Node " << j
                           << " with size " << chunk_size << " bytes." << std::endl;
 
                 topology->send(std::move(chunk));
