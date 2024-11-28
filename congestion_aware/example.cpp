@@ -233,9 +233,7 @@ void chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
-
-    // Simplified log message without accessing device IDs
-    std::cout << "[Reduce-Scatter] Chunk arrived at time: " << current_time << " ns." << std::endl;
+    std::cout << "[DEBUG][Reduce-Scatter] Chunk arrived at time: " << current_time << " ns." << std::endl;
 }
 
 // Callback for logging All-Gather chunk arrivals
@@ -244,9 +242,7 @@ void all_gather_chunk_arrived_callback(void* const event_queue_ptr) {
     assert(event_queue != nullptr);
 
     const auto current_time = event_queue->get_current_time();
-
-    // Simplified log message without accessing device IDs
-    std::cout << "[All-Gather] Chunk arrived at time: " << current_time << " ns." << std::endl;
+    std::cout << "[DEBUG][All-Gather] Chunk arrived at time: " << current_time << " ns." << std::endl;
 }
 
 // Trigger All-Gather for a specific chunk
@@ -261,11 +257,10 @@ void trigger_all_gather_for_chunk(int node_id, int chunk_id, EventQueue* event_q
             chunk_size, route, all_gather_chunk_arrived_callback, event_queue_ptr);
         chunk->data = node_buffers[node_id][chunk_id]; // Assign reduced chunk value to chunk
 
-        std::cout << "[All-Gather] Sending chunk " << chunk_id
-                  << " from Node " << node_id
-                  << " to Node " << dest
-                  << " with value: " << chunk->data
-                  << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
+        const auto current_time = event_queue->get_current_time();
+        std::cout << "[DEBUG][All-Gather] Node " << node_id
+                  << " sending chunk " << chunk_id << " to Node " << dest
+                  << " at time: " << current_time << " ns." << std::endl;
 
         topology->send(std::move(chunk));
     }
@@ -273,20 +268,25 @@ void trigger_all_gather_for_chunk(int node_id, int chunk_id, EventQueue* event_q
 
 // Process reduction progress
 void process_reduction(int node_id, int chunk_id, EventQueue* event_queue) {
+    const auto start_time = event_queue->get_current_time();
     node_buffers[node_id][chunk_id] += 1;
 
     reduction_progress[node_id]++;
-    std::cout << "[Reduction] Node " << node_id << " reduced chunk " << chunk_id
-              << ". Current progress: " << reduction_progress[node_id] << "/" << chunks_per_packet
-              << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
+    std::cout << "[DEBUG][Reduce-Scatter] Node " << node_id
+              << " started reducing chunk " << chunk_id
+              << " at time: " << start_time << " ns." << std::endl;
 
     // Trigger All-Gather for the current chunk
     trigger_all_gather_for_chunk(node_id, chunk_id, event_queue);
 
+    const auto end_time = event_queue->get_current_time();
+    std::cout << "[DEBUG][Reduce-Scatter] Node " << node_id
+              << " finished reducing chunk " << chunk_id
+              << " at time: " << end_time << " ns." << std::endl;
+
     if (reduction_progress[node_id] == chunks_per_packet) {
-        const auto current_time = event_queue->get_current_time();
-        std::cout << "Node " << node_id << " completed reduction. Fully reduced value: "
-                  << node_buffers[node_id][0] << " at time: " << current_time << " ns" << std::endl;
+        std::cout << "[DEBUG][Reduce-Scatter] Node " << node_id
+                  << " completed all reductions at time: " << end_time << " ns." << std::endl;
     }
 }
 
@@ -314,10 +314,10 @@ int main() {
 
                 auto chunk = std::make_unique<Chunk>(chunk_size, route, chunk_arrived_callback, event_queue_ptr);
 
-                std::cout << "[Reduce-Scatter] Sending chunk " << chunk_id
+                std::cout << "[DEBUG][Reduce-Scatter] Sending chunk " << chunk_id
                           << " from Node " << i
                           << " to Node " << j
-                          << " with size " << chunk_size << " bytes." << std::endl;
+                          << " at time: " << event_queue->get_current_time() << " ns." << std::endl;
 
                 topology->send(std::move(chunk));
                 process_reduction(j, chunk_id, event_queue.get());
@@ -330,9 +330,10 @@ int main() {
     }
 
     const auto finish_time = event_queue->get_current_time();
-    std::cout << "Total NPUs Count: " << npus_count << std::endl;
-    std::cout << "Total devices Count: " << devices_count << std::endl;
-    std::cout << "Simulation finished at time: " << finish_time << " ns" << std::endl;
+    std::cout << "[DEBUG] Total NPUs Count: " << npus_count << std::endl;
+    std::cout << "[DEBUG] Total devices Count: " << devices_count << std::endl;
+    std::cout << "[DEBUG] Simulation finished at time: " << finish_time << " ns." << std::endl;
 
     return 0;
 }
+
