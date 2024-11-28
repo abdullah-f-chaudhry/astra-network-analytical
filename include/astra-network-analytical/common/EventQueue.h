@@ -7,6 +7,7 @@ LICENSE file in the root directory of this source tree.
 
 #include "common/EventList.h"
 #include "common/Type.h"
+#include <queue> // Include for std::priority_queue
 
 namespace NetworkAnalytical {
 
@@ -56,8 +57,14 @@ class EventQueue {
     /// current time of the event queue
     EventTime current_time;
 
-    /// list of EventLists
-    std::list<EventList> event_queue;
+    /// priority queue of EventLists
+    struct EventComparator {
+        bool operator()(const EventList& a, const EventList& b) {
+            return a.get_event_time() > b.get_event_time();
+        }
+    };
+
+    std::priority_queue<EventList, std::vector<EventList>, EventComparator> event_queue;
 };
 
 }  // namespace NetworkAnalytical
