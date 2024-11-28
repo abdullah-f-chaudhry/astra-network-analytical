@@ -289,7 +289,7 @@ void process_reduction(int node_id, int chunk_id, EventQueue* event_queue) {
 }
 
 // Initiate pipelined Reduce-Scatter and All-Gather
-void initiate_pipeline(int node_id, int chunk_id, EventQueue* event_queue, std::unique_ptr<Chunk> chunk) {
+void initiate_pipeline(int node_id, int chunk_id, EventQueue* event_queue, Chunk* chunk) {
     if (chunk_id == 0) {
         std::cout << "[Pipeline] Initiating All-Gather for first chunk at Node " << node_id
                   << " with value " << chunk->data
@@ -319,19 +319,20 @@ int main() {
     for (int i = 0; i < npus_count; i++) {
         for (int j = 0; j < npus_count; j++) {
             if (i == j) continue;
-
+    
             for (int chunk_id = 0; chunk_id < chunks_per_packet; chunk_id++) {
                 auto route = topology->route(i, j);
                 auto* event_queue_ptr = static_cast<void*>(event_queue.get());
-
+    
                 auto chunk = std::make_unique<Chunk>(chunk_size, route, chunk_arrived_callback, event_queue_ptr);
-
+    
                 std::cout << "[Reduce-Scatter] Sending chunk from Node " << i
                           << " to Node " << j << " with size " << chunk_size << " bytes." << std::endl;
-
-                topology->send(std::move(chunk));
-
-                initiate_pipeline(j, chunk_id, event_queue.get(), std::move(chunk));
+    
+                // Pass a raw pointer to initiate_pipeline for inspection
+                initiate_pipeline(j, chunk_id, event_queue.get(), chunk.get());
+                topology->send(std::move(chunk)); // Ownership transfer happens here
+    
                 process_reduction(j, chunk_id, event_queue.get());
             }
         }
